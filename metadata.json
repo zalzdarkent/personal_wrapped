@@ -1,0 +1,6 @@
+{
+  "name": "Personal Year Wrapped",
+  "description": "Transform your annual activity into bold, neo-brutalist 9:16 shareable wrapped recap stories for GitHub, Spotify, Gaming, Reading, and Fitness.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
