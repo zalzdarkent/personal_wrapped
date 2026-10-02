@@ -508,17 +508,10 @@ export const CreateView: React.FC<CreateViewProps> = ({
               <div className="flex items-center gap-2">
                 <Search className="w-5 h-5 text-black" />
                 <h3 className="font-display font-black text-xl text-black uppercase">
-                  Real {category} Live Scanner
+                  {category} Scanner
                 </h3>
               </div>
-              <span className="font-mono-code text-[11px] bg-black text-[#D2FF3A] px-2 py-0.5 font-bold">
-                PUBLIC API CONNECT
-              </span>
             </div>
-
-            <p className="text-xs text-neutral-700 leading-relaxed">
-              Enter your real public profile URL or username. We query the live API, calculate your true repository languages, commit volume, peak delivery dates, and generate an authentic wrapped archetype.
-            </p>
 
             {/* Error Banner */}
             {scanError && (
@@ -550,25 +543,6 @@ export const CreateView: React.FC<CreateViewProps> = ({
                   <Search className="w-4 h-4" />
                   <span>FETCH & RECAP</span>
                 </button>
-              </div>
-
-              {/* 1-Click Fast Test Pills */}
-              <div className="pt-2 flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-mono-code text-neutral-600 font-bold uppercase">
-                  1-Click Live Test:
-                </span>
-                {info.examples.map((ex) => (
-                  <button
-                    key={ex.label}
-                    onClick={() => {
-                      setUrlOrUsernameInput(ex.val);
-                      handleRunRealScan(ex.val);
-                    }}
-                    className="px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 border border-black text-xs font-mono-code font-bold text-neutral-800 brutal-btn"
-                  >
-                    ★ {ex.label}
-                  </button>
-                ))}
               </div>
             </div>
 

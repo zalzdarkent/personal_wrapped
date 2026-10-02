@@ -156,6 +156,8 @@ export const ResultView: React.FC<ResultViewProps> = ({
           <VideoRecapPlayer
             data={data}
             theme={theme}
+            isPremiumUnlocked={isPremiumUnlocked}
+            onOpenUpgradeModal={onOpenUpgradeModal}
             onOpenShareModal={onOpenShareModal}
           />
         </div>
