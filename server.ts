@@ -1,10 +1,15 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
+import util from 'util';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+const execPromise = util.promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -12,6 +17,98 @@ const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3090;
 
 app.use(express.json());
+app.use('/out', express.static(path.resolve(__dirname, 'out')));
+
+// API: Download rendered video
+app.get('/api/download-video', (req, res) => {
+  const videoPath = path.resolve(__dirname, 'out/personal_wrapped.mp4');
+  if (fs.existsSync(videoPath)) {
+    return res.download(videoPath, 'personal_wrapped_2026.mp4');
+  }
+  const testPath = path.resolve(__dirname, 'out/test-full-render.mp4');
+  if (fs.existsSync(testPath)) {
+    return res.download(testPath, 'personal_wrapped_2026.mp4');
+  }
+  return res.status(404).json({ error: 'Video not rendered yet.' });
+});
+
+// API: Dynamic Remotion Video Render with User-Specific Props
+app.post('/api/render-video', async (req, res) => {
+  const { data, theme, isPro, narration } = req.body || {};
+  if (!data) {
+    return res.status(400).json({ error: 'Missing user wrapped data' });
+  }
+
+  const outDir = path.resolve(__dirname, 'out');
+  if (!fs.existsSync(outDir)) {
+    fs.mkdirSync(outDir, { recursive: true });
+  }
+
+  // Generate deterministic cache key based on inputs
+  const hash = crypto
+    .createHash('md5')
+    .update(JSON.stringify({ data, theme, isPro: Boolean(isPro), narration }))
+    .digest('hex')
+    .substring(0, 12);
+
+  const cleanHandle = String(data.handle || 'user').replace(/[^a-zA-Z0-9_-]/g, '') || 'user';
+  const prefix = isPro ? 'VIP_PRO' : 'WRAP';
+  const category = data.category || 'recap';
+  const filename = `${prefix}_${cleanHandle}_${category}_wrapped_2026.mp4`;
+  const outputFile = path.resolve(outDir, `video_${category}_${hash}.mp4`);
+
+  // If already rendered, return cached video immediately
+  if (fs.existsSync(outputFile)) {
+    console.log(`[Render] Cache hit for ${data.userName} (${outputFile})`);
+    return res.json({
+      success: true,
+      downloadUrl: `/out/video_${category}_${hash}.mp4`,
+      filename,
+    });
+  }
+
+  const propsFile = path.resolve(outDir, `props_${category}_${hash}.json`);
+
+  try {
+    fs.writeFileSync(
+      propsFile,
+      JSON.stringify({
+        data,
+        theme,
+        isPro: Boolean(isPro),
+        narration: narration || null,
+      })
+    );
+
+    const remotionBin = path.resolve(__dirname, 'node_modules/.bin/remotion');
+    console.log(`[Render] Starting personalized ${category} render for ${data.userName} (@${data.handle})...`);
+
+    const cmd = `"${remotionBin}" render src/remotion/index.ts PersonalWrapped "${outputFile}" --props="${propsFile}" --concurrency=8`;
+    await execPromise(cmd, { cwd: __dirname });
+
+    console.log(`[Render] Successfully rendered video: ${outputFile}`);
+
+    // Clean up temporary props file
+    try {
+      fs.unlinkSync(propsFile);
+    } catch {}
+
+    return res.json({
+      success: true,
+      downloadUrl: `/out/video_${category}_${hash}.mp4`,
+      filename,
+    });
+  } catch (err: any) {
+    console.error('[Render Error]:', err);
+    try {
+      if (fs.existsSync(propsFile)) fs.unlinkSync(propsFile);
+    } catch {}
+
+    return res.status(500).json({
+      error: err.message || 'Failed to render personalized video',
+    });
+  }
+});
 
 // API: Spotify URL & Playlist Parser
 app.get('/api/spotify', async (req, res) => {
